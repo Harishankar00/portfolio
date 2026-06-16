@@ -22,17 +22,10 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
 
-  // Track active section on scroll using IntersectionObserver
+  // Track active section on scroll using viewport-relative rects
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-
-      const scrollPosition = window.scrollY + 180; // trigger offset for header height
-
-      if (window.scrollY < 120) {
-        setActiveSection('');
-        return;
-      }
 
       // Check if user has scrolled to the bottom
       if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
@@ -44,9 +37,9 @@ export const Navbar: React.FC = () => {
       for (const item of navItems) {
         const el = document.getElementById(item.id);
         if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPosition >= top && scrollPosition < top + height) {
+          const rect = el.getBoundingClientRect();
+          // Check if section occupies the focal point (y = 200px) of the viewport
+          if (rect.top <= 200 && rect.bottom >= 200) {
             currentSection = item.id;
             break;
           }
@@ -55,6 +48,8 @@ export const Navbar: React.FC = () => {
 
       if (currentSection) {
         setActiveSection(currentSection);
+      } else if (window.scrollY < 120) {
+        setActiveSection('');
       }
     };
 

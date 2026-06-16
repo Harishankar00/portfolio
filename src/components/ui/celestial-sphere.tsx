@@ -1,194 +1,159 @@
-import React, { useRef, useEffect } from "react";
-import * as THREE from "three";
+import React, { useRef, useEffect } from 'react';
 
-// =================================
-//  1. The Shader Component
-// =================================
-
-interface CelestialSphereProps {
-  hue?: number;
-  speed?: number;
-  zoom?: number;
-  particleSize?: number;
-  className?: string;
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  baseRadius: number;
 }
 
-export const CelestialSphere: React.FC<CelestialSphereProps> = ({
-  hue = 200.0,
-  speed = 0.3,
-  zoom = 1.5,
-  particleSize = 3.0,
-  className = "",
-}) => {
-  const mountRef = useRef<HTMLDivElement>(null);
+export const CelestialSphere: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (!mountRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    const currentMount = mountRef.current;
-    let scene: THREE.Scene, camera: THREE.OrthographicCamera, renderer: THREE.WebGLRenderer, material: THREE.ShaderMaterial, mesh: THREE.Mesh;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     let animationFrameId: number;
-    const mouse = new THREE.Vector2(0.5, 0.5);
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
 
-    // --- Shaders ---
-    const vertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
+    const particles: Particle[] = [];
+    // Scale density of particles with screen resolution
+    const particleCount = Math.max(50, Math.min(130, Math.floor((width * height) / 12000)));
+    const connectionDistance = 135;
+    const mouse = { x: -1000, y: -1000, active: false };
 
-    const fragmentShader = `
-      precision highp float;
-      varying vec2 vUv;
-      uniform vec2 u_resolution;
-      uniform float u_time;
-      uniform vec2 u_mouse;
-      uniform float u_hue;
-      uniform float u_zoom;
-      uniform float u_particle_size;
-
-      // HSL to RGB conversion
-      vec3 hsl2rgb(vec3 c) {
-        vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0), 6.0)-3.0)-1.0, 0.0, 1.0);
-        return c.z * mix(vec3(1.0), rgb, c.y);
-      }
-
-      // 2D Random function
-      float random(vec2 st) {
-        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-      }
-
-      // 2D Noise function
-      float noise(vec2 st) {
-        vec2 i = floor(st);
-        vec2 f = fract(st);
-        float a = random(i);
-        float b = random(i + vec2(1.0, 0.0));
-        float c = random(i + vec2(0.0, 1.0));
-        float d = random(i + vec2(1.0, 1.0));
-        vec2 u = f * f * (3.0 - 2.0 * f);
-        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.y * u.x;
-      }
-
-      // Fractional Brownian Motion
-      float fbm(vec2 st) {
-        float value = 0.0;
-        float amplitude = 0.5;
-        for (int i = 0; i < 6; i++) {
-          value += amplitude * noise(st);
-          st *= 2.0;
-          amplitude *= 0.5;
-        }
-        return value;
-      }
-
-      void main() {
-        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.y, u_resolution.x);
-        uv *= u_zoom;
-
-        // Warp effect based on mouse
-        vec2 mouse_normalized = u_mouse / u_resolution;
-        uv += (mouse_normalized - 0.5) * 0.8;
-
-        // Time-varying noise for nebula clouds
-        float f = fbm(uv + vec2(u_time * 0.1, u_time * 0.05));
-        float t = fbm(uv + f + vec2(u_time * 0.05, u_time * 0.02));
-        
-        // Final color calculation
-        float nebula = pow(t, 2.0);
-        vec3 color = hsl2rgb(vec3(u_hue / 360.0 + nebula * 0.2, 0.7, 0.5));
-        color *= nebula * 2.5;
-
-        // Starfield
-        float star_val = random(vUv * 500.0);
-        if (star_val > 0.998) {
-            float star_brightness = (star_val - 0.998) / 0.002;
-            color += vec3(star_brightness * u_particle_size);
-        }
-
-        gl_FragColor = vec4(color, 1.0);
-      }
-    `;
-
-    // --- Scene Initialization ---
-    const init = () => {
-      scene = new THREE.Scene();
-      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      currentMount.appendChild(renderer.domElement);
-
-      material = new THREE.ShaderMaterial({
-        vertexShader,
-        fragmentShader,
-        uniforms: {
-          u_time: { value: 0.0 },
-          u_resolution: { value: new THREE.Vector2() },
-          u_mouse: { value: new THREE.Vector2() },
-          u_hue: { value: hue },
-          u_zoom: { value: zoom },
-          u_particle_size: { value: particleSize },
-        },
+    // Initialize particles
+    for (let i = 0; i < particleCount; i++) {
+      const radius = Math.random() * 2.2 + 1.8; // larger particles (1.8px to 4px)
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        radius: radius,
+        baseRadius: radius,
       });
+    }
 
-      const geometry = new THREE.PlaneGeometry(2, 2);
-      mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
-
-      addEventListeners();
-      resize();
-      animate();
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     };
 
-    // --- Animation Loop ---
-    const animate = () => {
-      material.uniforms.u_time.value += 0.005 * speed;
-      renderer.render(scene, camera);
-      animationFrameId = requestAnimationFrame(animate);
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
     };
 
-    // --- Event Handlers ---
-    const resize = () => {
-      const { clientWidth, clientHeight } = currentMount;
-      renderer.setSize(clientWidth, clientHeight);
-      material.uniforms.u_resolution.value.set(clientWidth, clientHeight);
-      camera.updateProjectionMatrix();
+    const handleMouseLeave = () => {
+      mouse.x = -1000;
+      mouse.y = -1000;
+      mouse.active = false;
     };
 
-    const onMouseMove = (event: MouseEvent) => {
-      const rect = currentMount.getBoundingClientRect();
-      mouse.x = event.clientX - rect.left;
-      mouse.y = event.clientY - rect.top;
-      material.uniforms.u_mouse.value.set(mouse.x, currentMount.clientHeight - mouse.y);
-    };
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
 
-    const addEventListeners = () => {
-      window.addEventListener("resize", resize);
-      window.addEventListener("mousemove", onMouseMove);
-    };
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
 
-    const removeEventListeners = () => {
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMouseMove);
-    };
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
 
-    init();
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p1.x - p2.x;
+          const dy = p1.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // --- Cleanup ---
-    return () => {
-      removeEventListeners();
-      cancelAnimationFrame(animationFrameId);
-      if (currentMount && renderer.domElement) {
-        currentMount.removeChild(renderer.domElement);
+          if (dist < connectionDistance) {
+            // Lighter bioluminescent cyan-blue connection string (alpha up to 0.38)
+            const alpha = (1 - dist / connectionDistance) * 0.38;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(79, 209, 255, ${alpha})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+
+        // Mouse connection and repulsion force
+        if (mouse.active) {
+          const mdx = p1.x - mouse.x;
+          const mdy = p1.y - mouse.y;
+          const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+          if (mdist < 150) {
+            // Draw connection to mouse (glowing cyan)
+            const alpha = (1 - mdist / 150) * 0.48;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = `rgba(0, 191, 255, ${alpha})`;
+            ctx.lineWidth = 1.0;
+            ctx.stroke();
+
+            // Subtle repulsion physics
+            const force = (150 - mdist) / 150;
+            const angle = Math.atan2(mdy, mdx);
+            p1.x += Math.cos(angle) * force * 0.6;
+            p1.y += Math.sin(angle) * force * 0.6;
+          }
+        }
+
+        // Advance particle position
+        p1.x += p1.vx;
+        p1.y += p1.vy;
+
+        // Bounce particle off screen boundaries
+        if (p1.x < 0 || p1.x > width) p1.vx *= -1;
+        if (p1.y < 0 || p1.y > height) p1.vy *= -1;
+
+        // Keep coordinates contained
+        p1.x = Math.max(0, Math.min(width, p1.x));
+        p1.y = Math.max(0, Math.min(height, p1.y));
+
+        // Draw particle dot in bright cyan
+        ctx.beginPath();
+        ctx.arc(p1.x, p1.y, p1.radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#00BFFF';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#00BFFF';
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow properties
       }
-      renderer.dispose();
-    };
-  }, [hue, speed, zoom, particleSize]);
 
-  return <div ref={mountRef} className={className || "w-full h-full"} />;
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none block"
+    />
+  );
 };
 
 export default CelestialSphere;
