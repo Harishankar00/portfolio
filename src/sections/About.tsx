@@ -47,9 +47,9 @@ export const About: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               
               {/* Education Card */}
-              <div className="p-5 rounded border border-zinc-900 bg-[#050505] hover:border-zinc-800 transition-all duration-300">
+              <div className="p-5 rounded border border-zinc-900/80 bg-[#0c0c0c]/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-3 text-white">
-                  <div className="p-2 rounded bg-zinc-900 text-[#00BFFF]">
+                  <div className="p-2 rounded bg-zinc-900/80 text-[#00BFFF]">
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <h3 className="text-xs font-mono tracking-widest uppercase text-zinc-200">Education</h3>
@@ -58,11 +58,11 @@ export const About: React.FC = () => {
                 <p className="text-xs text-zinc-500 font-mono mt-1">KGISL Institute of Tech (CGPA: 8.0)</p>
                 <p className="text-xs text-[#4FD1FF] mt-2 font-mono">Graduating May 2027</p>
               </div>
-
+ 
               {/* Location Card */}
-              <div className="p-5 rounded border border-zinc-900 bg-[#050505] hover:border-zinc-800 transition-all duration-300">
+              <div className="p-5 rounded border border-zinc-900/80 bg-[#0c0c0c]/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-3 text-white">
-                  <div className="p-2 rounded bg-zinc-900 text-[#00BFFF]">
+                  <div className="p-2 rounded bg-zinc-900/80 text-[#00BFFF]">
                     <MapPin className="w-4 h-4" />
                   </div>
                   <h3 className="text-xs font-mono tracking-widest uppercase text-zinc-200">Location</h3>
@@ -74,11 +74,11 @@ export const About: React.FC = () => {
                   Open to remote &amp; relocation
                 </p>
               </div>
-
+ 
               {/* Focus Area 1 */}
-              <div className="p-5 rounded border border-zinc-900 bg-[#050505] hover:border-zinc-800 transition-all duration-300">
+              <div className="p-5 rounded border border-zinc-900/80 bg-[#0c0c0c]/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-3 text-white">
-                  <div className="p-2 rounded bg-zinc-900 text-[#00BFFF]">
+                  <div className="p-2 rounded bg-zinc-900/80 text-[#00BFFF]">
                     <Target className="w-4 h-4" />
                   </div>
                   <h3 className="text-xs font-mono tracking-widest uppercase text-zinc-200">Autonomous systems</h3>
@@ -87,11 +87,11 @@ export const About: React.FC = () => {
                 <p className="text-xs text-zinc-500 font-mono mt-1">Simulating in Gazebo &amp; RViz2</p>
                 <p className="text-xs text-zinc-400 mt-2">Specializing in obstacle perception &amp; robot kinematics.</p>
               </div>
-
+ 
               {/* Focus Area 2 */}
-              <div className="p-5 rounded border border-zinc-900 bg-[#050505] hover:border-zinc-800 transition-all duration-300">
+              <div className="p-5 rounded border border-zinc-900/80 bg-[#0c0c0c]/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-3 text-white">
-                  <div className="p-2 rounded bg-zinc-900 text-[#00BFFF]">
+                  <div className="p-2 rounded bg-zinc-900/80 text-[#00BFFF]">
                     <Database className="w-4 h-4" />
                   </div>
                   <h3 className="text-xs font-mono tracking-widest uppercase text-zinc-200">Backend &amp; ML Pipelines</h3>

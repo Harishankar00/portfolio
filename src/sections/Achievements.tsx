@@ -54,7 +54,7 @@ export const Achievements: React.FC = () => {
         </div>
 
         {/* Highlight Card: Smart Motion Hackathon */}
-        <div className="mb-10 p-6 sm:p-8 rounded border border-[#00BFFF]/20 bg-gradient-to-r from-[#00BFFF]/5 to-[#4FD1FF]/5 text-left relative overflow-hidden group">
+        <div className="mb-10 p-6 sm:p-8 rounded border border-[#00BFFF]/20 bg-zinc-950/90 backdrop-blur-md bg-gradient-to-r from-[#00BFFF]/5 to-[#4FD1FF]/5 text-left relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#00BFFF]/5 rounded-full blur-3xl -z-10 group-hover:bg-[#00BFFF]/10 transition-colors duration-500" />
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -92,7 +92,7 @@ export const Achievements: React.FC = () => {
           {metrics.map((metric, index) => (
             <div
               key={index}
-              className="p-6 rounded border border-zinc-900 bg-zinc-950/20 hover:border-zinc-800 transition-all duration-300 flex flex-col justify-between text-left"
+              className="p-6 rounded border border-zinc-900 bg-zinc-950/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-300 flex flex-col justify-between text-left"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">

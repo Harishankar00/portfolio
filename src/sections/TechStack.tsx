@@ -82,7 +82,7 @@ export const TechStack: React.FC = () => {
           {techCategories.map((category, catIdx) => (
             <div
               key={catIdx}
-              className="p-6 rounded border border-zinc-900 bg-zinc-950/20 hover:border-zinc-850 transition-colors duration-300"
+              className="p-6 rounded border border-zinc-900/80 bg-zinc-950/90 backdrop-blur-md hover:border-zinc-850 transition-colors duration-300"
             >
               {/* Category Header */}
               <div className="flex items-center gap-3 mb-6 border-b border-zinc-900 pb-4">

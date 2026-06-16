@@ -21,6 +21,12 @@ export const Contact: React.FC = () => {
     });
   };
 
+  const triggerMailto = () => {
+    const subject = encodeURIComponent(`Portfolio Contact from ${formData.name}`);
+    const body = encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`);
+    window.location.href = `mailto:harishankarbb2005@gmail.com?subject=${subject}&body=${body}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
@@ -28,22 +34,70 @@ export const Contact: React.FC = () => {
     setStatus('sending');
     setConsoleLogs([]);
 
-    await addLog('> POST /api/v1/contact HTTP/1.1', 200);
-    await addLog(`> Host: api.harishankar.dev`, 150);
-    await addLog(`> Content-Type: application/json`, 150);
-    await addLog(`> User-Agent: portfolio-client/1.0`, 150);
+    await addLog('> POST /api/v1/contact HTTP/1.1', 150);
+    await addLog(`> Host: api.harishankar.dev`, 120);
+    await addLog(`> Content-Type: application/json`, 120);
+    await addLog(`> User-Agent: portfolio-client/1.0`, 100);
     await addLog(`> `, 100);
-    await addLog(`* Connected to remote socket...`, 300);
-    await addLog(`* Handshaking TLS v1.3 secure channel...`, 400);
-    await addLog(`* Transmitting payload: { sender: "${formData.name.substring(0, 15)}..." }`, 400);
-    await addLog(`* Upload completed successfully.`, 300);
-    await addLog(`< HTTP/1.1 202 Accepted`, 200);
-    await addLog(`< X-Response-Time: 32ms`, 100);
-    await addLog(`< Connection: close`, 100);
-    await addLog(`* Message transmitted to Harishankar M.`, 200);
+    await addLog(`* Connected to remote mail gateway...`, 300);
 
-    setStatus('success');
-    setFormData({ name: '', email: '', message: '' });
+    const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+    
+    if (accessKey && accessKey !== "YOUR_ACCESS_KEY_HERE") {
+      await addLog(`* Transmitting payload via Web3Forms secure API...`, 350);
+      try {
+        const response = await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            access_key: accessKey,
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+            subject: `Portfolio Contact from ${formData.name}`,
+            from_name: `${formData.name} (Portfolio)`,
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          await addLog(`* Payload received by gateway server successfully.`, 300);
+          await addLog(`< HTTP/1.1 200 OK`, 200);
+          await addLog(`< X-Response-Time: 184ms`, 100);
+          await addLog(`* Connection: close`, 100);
+          await addLog(`* Message transmitted to Harishankar M.`, 200);
+          setStatus('success');
+          setFormData({ name: '', email: '', message: '' });
+        } else {
+          await addLog(`* API returned error status: ${result.message || "400 Bad Request"}`, 300);
+          await addLog(`* Initializing secure mailto client fallback...`, 350);
+          triggerMailto();
+          await addLog(`< HTTP/1.1 202 HandedOver`, 200);
+          await addLog(`* Message handed over to local mail client.`, 200);
+          setStatus('success');
+          setFormData({ name: '', email: '', message: '' });
+        }
+      } catch (err) {
+        await addLog(`* Network transport layer connection failed.`, 300);
+        await addLog(`* Initializing secure mailto client fallback...`, 350);
+        triggerMailto();
+        await addLog(`< HTTP/1.1 202 HandedOver`, 200);
+        await addLog(`* Message handed over to local mail client.`, 200);
+        setStatus('success');
+        setFormData({ name: '', email: '', message: '' });
+      }
+    } else {
+      await addLog(`* Web3Forms API key not found in env configurations.`, 200);
+      await addLog(`* Initializing secure mailto client fallback...`, 400);
+      triggerMailto();
+      await addLog(`< HTTP/1.1 202 HandedOver`, 200);
+      await addLog(`* Message handed over to local mail client.`, 200);
+      setStatus('success');
+      setFormData({ name: '', email: '', message: '' });
+    }
   };
 
   return (
@@ -128,7 +182,7 @@ export const Contact: React.FC = () => {
 
           {/* Right Side: Interactive terminal forms */}
           <div className="lg:col-span-7 text-left">
-            <div className="rounded border border-zinc-900 bg-zinc-950/40 overflow-hidden">
+            <div className="rounded border border-zinc-900 bg-zinc-950/90 backdrop-blur-md overflow-hidden shadow-2xl">
               
               {/* Terminal Header Bar */}
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-900 bg-zinc-950">
@@ -158,7 +212,7 @@ export const Contact: React.FC = () => {
                           required
                           value={formData.name}
                           onChange={handleInputChange}
-                          className="w-full bg-[#050505] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors"
+                          className="w-full bg-[#0d0d0d] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors"
                           placeholder="e.g. John Doe"
                         />
                       </div>
@@ -172,7 +226,7 @@ export const Contact: React.FC = () => {
                           required
                           value={formData.email}
                           onChange={handleInputChange}
-                          className="w-full bg-[#050505] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors"
+                          className="w-full bg-[#0d0d0d] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors"
                           placeholder="e.g. client@endpoint.com"
                         />
                       </div>
@@ -188,7 +242,7 @@ export const Contact: React.FC = () => {
                         rows={4}
                         value={formData.message}
                         onChange={handleInputChange}
-                        className="w-full bg-[#050505] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors resize-none"
+                        className="w-full bg-[#0d0d0d] border border-zinc-900 focus:border-[#00BFFF]/50 text-white rounded px-3 py-2 text-xs outline-none transition-colors resize-none"
                         placeholder="State your objective..."
                       />
                     </div>
@@ -204,7 +258,7 @@ export const Contact: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     {/* Console Logger */}
-                    <div className="bg-[#050505] rounded border border-zinc-900 p-4 min-h-[160px] font-mono text-[11px] text-zinc-400 overflow-y-auto space-y-1">
+                    <div className="bg-[#0d0d0d] rounded border border-zinc-900 p-4 min-h-[160px] font-mono text-[11px] text-zinc-400 overflow-y-auto space-y-1">
                       {consoleLogs.map((log, index) => (
                         <div
                           key={index}
@@ -227,11 +281,11 @@ export const Contact: React.FC = () => {
                     </div>
 
                     {status === 'success' && (
-                      <div className="flex items-center gap-3 p-4 rounded bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 text-xs">
+                      <div className="flex items-center gap-3 p-4 rounded bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 text-xs animate-fade-in">
                         <CheckCircle className="w-4 h-4 flex-shrink-0" />
                         <div>
                           <p className="font-semibold">Transmission Confirmed</p>
-                          <p className="text-[11px] text-zinc-500 mt-0.5">
+                          <p className="text-[11px] text-zinc-500 mt-0.5 font-light">
                             Thank you. Connection established. I will respond to your endpoint shortly.
                           </p>
                         </div>

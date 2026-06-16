@@ -30,7 +30,7 @@ const BentoCard: React.FC<BentoCardProps> = ({
   return (
     <div
       onMouseMove={handleMouseMove}
-      className={`group relative rounded border border-zinc-900 bg-zinc-950/20 hover:border-zinc-800 transition-all duration-500 overflow-hidden flex flex-col justify-between ${className}`}
+      className={`group relative rounded border border-zinc-900/80 bg-zinc-950/90 backdrop-blur-md hover:border-zinc-800 transition-all duration-500 overflow-hidden flex flex-col justify-between ${className}`}
     >
       {/* Glow highlight mask on hover */}
       <motion.div
@@ -128,7 +128,7 @@ const ByteGuardConsole: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="bg-[#050505] border border-zinc-900 rounded p-4 h-[180px] w-full font-mono text-[10px] text-zinc-500 overflow-y-auto space-y-1.5 scrollbar-none"
+      className="bg-[#0c0c0c]/95 border border-zinc-900 rounded p-4 h-[180px] w-full font-mono text-[10px] text-zinc-500 overflow-y-auto space-y-1.5 scrollbar-none backdrop-blur-sm"
     >
       {logs.map((log, index) => {
         let color = "text-zinc-500";
@@ -316,7 +316,7 @@ const AutonomousLidarSim: React.FC = () => {
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="bg-[#050505] border border-zinc-900 rounded h-[180px] w-full flex items-center justify-center relative overflow-hidden"
+      className="bg-[#0c0c0c]/95 border border-zinc-900 rounded h-[180px] w-full flex items-center justify-center relative overflow-hidden backdrop-blur-sm"
     >
       <div className="absolute top-2 left-2 text-[8px] font-mono text-zinc-600 uppercase tracking-widest pointer-events-none">
         LIDAR_SCAN // OBSTACLE_AVOIDANCE
@@ -353,7 +353,7 @@ const CropScannerWidget: React.FC = () => {
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="bg-[#050505] border border-zinc-900 rounded p-4 h-[180px] w-full flex flex-col justify-between relative overflow-hidden font-mono"
+      className="bg-[#0c0c0c]/95 border border-zinc-900 rounded p-4 h-[180px] w-full flex flex-col justify-between relative overflow-hidden font-mono backdrop-blur-sm"
     >
       {/* Scanning laser line overlay */}
       {isHovered && (
@@ -364,7 +364,7 @@ const CropScannerWidget: React.FC = () => {
       )}
 
       {/* Camera feed placeholder grid */}
-      <div className="relative border border-zinc-900/60 rounded bg-zinc-950/60 h-28 flex items-center justify-center overflow-hidden">
+      <div className="relative border border-zinc-900/60 rounded bg-zinc-950/95 h-28 flex items-center justify-center overflow-hidden backdrop-blur-sm">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:10px_10px]" />
         
         {/* Mock leaf graphic using canvas or simple SVG styling */}
