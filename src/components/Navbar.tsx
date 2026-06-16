@@ -26,38 +26,43 @@ export const Navbar: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
 
-    const observerOptions = {
-      root: null,
-      rootMargin: '-30% 0px -60% 0px', // Trigger when section occupies the mid-to-upper viewport
-      threshold: 0.1,
-    };
+      const scrollPosition = window.scrollY + 180; // trigger offset for header height
 
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSection(entry.target.id);
+      if (window.scrollY < 120) {
+        setActiveSection('');
+        return;
+      }
+
+      // Check if user has scrolled to the bottom
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60) {
+        setActiveSection('contact');
+        return;
+      }
+
+      let currentSection = '';
+      for (const item of navItems) {
+        const el = document.getElementById(item.id);
+        if (el) {
+          const top = el.offsetTop;
+          const height = el.offsetHeight;
+          if (scrollPosition >= top && scrollPosition < top + height) {
+            currentSection = item.id;
+            break;
+          }
         }
-      });
+      }
+
+      if (currentSection) {
+        setActiveSection(currentSection);
+      }
     };
 
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    // Observe all sections
-    navItems.forEach((item) => {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    });
-
-    // Also observe hero section to clear active state
-    const heroEl = document.getElementById('hero');
-    if (heroEl) observer.observe(heroEl);
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      observer.disconnect();
     };
   }, []);
 

@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, ArrowRight } from 'lucide-react';
 import { GithubIcon as Github } from '../components/Icons';
-import { CelestialSphere } from '../components/ui/celestial-sphere';
 
 export const Hero: React.FC = () => {
   const scrollToProjects = () => {
@@ -115,33 +114,66 @@ export const Hero: React.FC = () => {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className="lg:col-span-5 h-[350px] md:h-[450px] w-full relative rounded-lg border border-zinc-900 bg-zinc-950/20 overflow-hidden"
+          className="lg:col-span-5 h-[350px] md:h-[450px] w-full relative rounded-lg border border-zinc-900 bg-zinc-950/10 backdrop-blur-xs overflow-hidden flex flex-col justify-between p-6 text-left"
         >
-          {/* Inner Technical HUD Elements (Gives it a professional product feel) */}
-          <div className="absolute top-4 left-4 z-20 pointer-events-none">
+          {/* Inner Technical HUD Elements */}
+          <div className="flex justify-between items-center w-full">
             <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-              SYSTEM_RENDERER // ACTIVE
+              AMR_TELEMETRY // LIVE
             </p>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-mono text-emerald-500 uppercase tracking-widest">Connected</span>
+            </div>
           </div>
-          <div className="absolute bottom-4 right-4 z-20 pointer-events-none text-right">
-            <p className="text-[10px] font-mono text-[#4FD1FF]/50 uppercase tracking-widest">
-              COIMBATORE, IN
-            </p>
+
+          {/* Radar Scanner Visual Widget (Vector/CSS simulation) */}
+          <div className="relative w-full h-48 border border-zinc-900/80 rounded bg-zinc-950/45 flex items-center justify-center overflow-hidden my-4">
+            {/* Grid overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:15px_15px]" />
+            
+            {/* Radar Sweep circle rings */}
+            <div className="absolute w-40 h-40 border border-zinc-800/40 rounded-full flex items-center justify-center">
+              <div className="w-28 h-28 border border-zinc-800/60 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 border border-zinc-800/80 rounded-full flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00BFFF]" />
+                </div>
+              </div>
+            </div>
+            
+            {/* Rotating Radar sweep line */}
+            <div className="absolute w-[200px] h-[200px] pointer-events-none origin-center animate-[spin_5s_linear_infinite]"
+                 style={{ background: 'conic-gradient(from 0deg, transparent 40%, rgba(0, 191, 255, 0.15) 100%)' }} />
+            
+            {/* Detected Obstacle coordinates */}
+            <span className="absolute w-1 h-1 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(239,68,68,1)] top-12 left-16 animate-ping" />
+            <span className="absolute w-1 h-1 rounded-full bg-[#00BFFF] shadow-[0_0_6px_rgba(0,191,255,1)] bottom-16 right-20" />
+            
+            {/* Trajectory vector route path */}
+            <svg className="absolute inset-0 w-full h-full stroke-zinc-700/45 fill-none" viewBox="0 0 200 150">
+              <path d="M 40,110 Q 90,40 140,80" strokeWidth="1" strokeDasharray="3,3" />
+            </svg>
+            
+            <div className="absolute bottom-2 left-2 text-[8px] font-mono text-zinc-500">
+              RANGE: 4.5m // RESOLUTION: 0.1m
+            </div>
           </div>
-          <div className="absolute top-4 right-4 z-20 pointer-events-none w-2 h-2 rounded-full bg-[#00BFFF] animate-pulse" />
 
-          {/* Interactive ThreeJS Shader Background */}
-          <CelestialSphere
-            hue={200.0}
-            speed={0.4}
-            zoom={1.2}
-            particleSize={3.5}
-            className="absolute inset-0 w-full h-full"
-          />
-
-          {/* Radial mask to fade the Canvas edges nicely into the UI box border */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,#050505_95%)] pointer-events-none" />
-          <div className="absolute inset-0 border border-zinc-900/50 pointer-events-none rounded-lg" />
+          {/* Telemetry stats bottom grid */}
+          <div className="grid grid-cols-3 gap-2 w-full text-[9px] font-mono text-zinc-400 border-t border-zinc-900/60 pt-4">
+            <div>
+              <span className="text-zinc-655 block">LOCALIZER</span>
+              <span className="text-[#00BFFF]">SLAM_AMCL</span>
+            </div>
+            <div>
+              <span className="text-zinc-655 block">LINEAR_V</span>
+              <span className="text-white">0.35 m/s</span>
+            </div>
+            <div>
+              <span className="text-zinc-655 block">ANGULAR_V</span>
+              <span className="text-white">0.12 rad/s</span>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>

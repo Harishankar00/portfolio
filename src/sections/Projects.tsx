@@ -148,8 +148,8 @@ const ByteGuardConsole: React.FC = () => {
   );
 };
 
-// 2. Trajectory simulator for Autonomous Vehicle
-const TrajectorySim: React.FC = () => {
+// 2. Trajectory / LiDAR Obstacle Avoidance simulator for Autonomous Vehicle
+const AutonomousLidarSim: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -161,14 +161,38 @@ const TrajectorySim: React.FC = () => {
 
     let animId: number;
     let time = 0;
-    const path: { x: number; y: number }[] = [];
 
-    // Initialize clean sinusoidal trajectory path
-    for (let i = 0; i <= 100; i++) {
-      const x = 30 + (i / 100) * 160;
-      const y = 80 + Math.sin(i * 0.1) * 30;
-      path.push({ x, y });
-    }
+    // Define static obstacle positions in canvas coordinates
+    const obstacles = [
+      { x: 75, y: 55, radius: 10, label: "OBSTACLE_A" },
+      { x: 175, y: 95, radius: 12, label: "OBSTACLE_B" },
+      { x: 120, y: 110, radius: 8, label: "OBSTACLE_C" },
+    ];
+
+    // Define planned path nodes (AMR trajectory dodging obstacles)
+    const waypoints = [
+      { x: 25, y: 75 },
+      { x: 75, y: 105 },
+      { x: 120, y: 65 },
+      { x: 175, y: 50 },
+      { x: 215, y: 85 }
+    ];
+
+    // Interpolate path progress between waypoints
+    const getPathPoint = (t: number) => {
+      const totalSegments = waypoints.length - 1;
+      const progress = (t * 0.005) % 1.0;
+      const currentSegment = Math.floor(progress * totalSegments);
+      const segmentProgress = (progress * totalSegments) - currentSegment;
+
+      const p0 = waypoints[currentSegment];
+      const p1 = waypoints[currentSegment + 1];
+
+      return {
+        x: p0.x + (p1.x - p0.x) * segmentProgress,
+        y: p0.y + (p1.y - p0.y) * segmentProgress
+      };
+    };
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -189,45 +213,97 @@ const TrajectorySim: React.FC = () => {
         ctx.stroke();
       }
 
-      // Draw trajectory path line
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      // Draw obstacles
+      obstacles.forEach(obs => {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw global trajectory planned path
+      ctx.strokeStyle = 'rgba(0, 191, 255, 0.15)';
       ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
+      ctx.setLineDash([3, 3]);
       ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i].x, path[i].y);
+      ctx.moveTo(waypoints[0].x, waypoints[0].y);
+      for (let i = 1; i < waypoints.length; i++) {
+        ctx.lineTo(waypoints[i].x, waypoints[i].y);
       }
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Draw navigation vehicle node
-      const currentIdx = Math.floor((time * (isHovered ? 1.5 : 0.8)) % path.length);
-      const vehicle = path[currentIdx];
+      // Get current bot position
+      const bot = getPathPoint(time);
 
-      // Glow halo
-      const glowGrad = ctx.createRadialGradient(vehicle.x, vehicle.y, 2, vehicle.x, vehicle.y, 16);
-      glowGrad.addColorStop(0, 'rgba(0, 191, 255, 0.4)');
-      glowGrad.addColorStop(1, 'rgba(0, 191, 255, 0)');
-      ctx.fillStyle = glowGrad;
+      // Simulate LiDAR scanning lines (radial sweeps)
+      ctx.lineWidth = 0.5;
+      const scanLinesCount = 36;
+      const angleStep = (Math.PI * 2) / scanLinesCount;
+      const scanRadius = 55 + Math.sin(time * 0.1) * 8;
+
+      for (let i = 0; i < scanLinesCount; i++) {
+        const angle = i * angleStep + (time * 0.02);
+        let endX = bot.x + Math.cos(angle) * scanRadius;
+        let endY = bot.y + Math.sin(angle) * scanRadius;
+        let hit = false;
+
+        for (const obs of obstacles) {
+          const toObsX = obs.x - bot.x;
+          const toObsY = obs.y - bot.y;
+          const proj = toObsX * Math.cos(angle) + toObsY * Math.sin(angle);
+
+          if (proj > 0 && proj < scanRadius) {
+            const perpDist = Math.abs(-toObsX * Math.sin(angle) + toObsY * Math.cos(angle));
+            if (perpDist < obs.radius) {
+              const hitDist = proj - Math.sqrt(obs.radius * obs.radius - perpDist * perpDist);
+              if (hitDist < scanRadius) {
+                endX = bot.x + Math.cos(angle) * hitDist;
+                endY = bot.y + Math.sin(angle) * hitDist;
+                hit = true;
+              }
+            }
+          }
+        }
+
+        ctx.strokeStyle = hit ? 'rgba(239, 68, 68, 0.25)' : 'rgba(0, 191, 255, 0.08)';
+        ctx.beginPath();
+        ctx.moveTo(bot.x, bot.y);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+
+        if (hit) {
+          ctx.fillStyle = '#ff4d4d';
+          ctx.beginPath();
+          ctx.arc(endX, endY, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Draw bot vehicle halo
+      const botGlow = ctx.createRadialGradient(bot.x, bot.y, 2, bot.x, bot.y, 14);
+      botGlow.addColorStop(0, 'rgba(0, 191, 255, 0.35)');
+      botGlow.addColorStop(1, 'rgba(0, 191, 255, 0)');
+      ctx.fillStyle = botGlow;
       ctx.beginPath();
-      ctx.arc(vehicle.x, vehicle.y, 16, 0, Math.PI * 2);
+      ctx.arc(bot.x, bot.y, 14, 0, Math.PI * 2);
       ctx.fill();
 
-      // Vehicle center node
+      // Draw bot node center
       ctx.fillStyle = '#4FD1FF';
       ctx.beginPath();
-      ctx.arc(vehicle.x, vehicle.y, 4, 0, Math.PI * 2);
+      ctx.arc(bot.x, bot.y, 4, 0, Math.PI * 2);
       ctx.fill();
 
-      // Radar scan circle surrounding the node
-      ctx.strokeStyle = 'rgba(79, 209, 255, 0.2)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(vehicle.x, vehicle.y, 22 + Math.sin(time * 0.15) * 4, 0, Math.PI * 2);
-      ctx.stroke();
-
-      time += 0.5;
+      time += isHovered ? 2.5 : 1.0;
       animId = requestAnimationFrame(draw);
     };
 
@@ -243,13 +319,13 @@ const TrajectorySim: React.FC = () => {
       className="bg-[#050505] border border-zinc-900 rounded h-[180px] w-full flex items-center justify-center relative overflow-hidden"
     >
       <div className="absolute top-2 left-2 text-[8px] font-mono text-zinc-600 uppercase tracking-widest pointer-events-none">
-        SLAM_LOCALIZATION // NAV2_PATH
+        LIDAR_SCAN // OBSTACLE_AVOIDANCE
       </div>
       <canvas
         ref={canvasRef}
-        width={220}
+        width={240}
         height={150}
-        className="w-[220px] h-[150px]"
+        className="w-[240px] h-[150px]"
       />
     </div>
   );
@@ -321,7 +397,7 @@ const CropScannerWidget: React.FC = () => {
 
 export const Projects: React.FC = () => {
   return (
-    <section id="projects" className="py-24 border-t border-zinc-900 bg-[#050505]">
+    <section id="projects" className="py-24 border-t border-zinc-900 bg-zinc-950/5 relative z-10">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         
         {/* Section Header */}
@@ -340,113 +416,113 @@ export const Projects: React.FC = () => {
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Card 1: ByteGuard (AI Security & Distributed Systems) - Spans 2 Columns */}
-          <BentoCard className="md:col-span-2 p-6 flex flex-col justify-between h-full min-h-[380px]" glowColor="rgba(79, 209, 255, 0.12)">
+          {/* Card 1: Autonomous Bot (Robotics & Autonomous Systems) - Spans 2 Columns */}
+          <BentoCard className="md:col-span-2 p-6 flex flex-col justify-between h-full min-h-[380px]" glowColor="rgba(0, 191, 255, 0.15)">
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start w-full">
               {/* Text Specs */}
               <div className="sm:col-span-7 flex flex-col">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded bg-zinc-900/60 border border-zinc-800 text-[#4FD1FF]">
-                    <ShieldCheck className="w-5 h-5" />
+                  <div className="p-2 rounded bg-zinc-900/60 border border-zinc-800 text-[#00BFFF]">
+                    <Cpu className="w-5 h-5" />
                   </div>
                   <div>
                     <span className="text-[10px] font-mono tracking-wide text-zinc-500 block uppercase">
-                      AI Security &amp; Distributed Systems
+                      Robotics &amp; Autonomous Systems
                     </span>
                     <h3 className="text-xl font-bold text-white group-hover:text-[#4FD1FF] transition-colors duration-300">
-                      ByteGuard Threat Analysis
+                      Autonomous Navigation Bot
                     </h3>
                   </div>
                 </div>
 
                 <p className="text-sm text-zinc-400 font-light leading-relaxed mb-6">
-                  Architected a real-time distributed threat analysis pipeline inspecting incoming request payloads to securely block SQL injections and malicious traffic at the node level. Combines a light Mamba State Space Model with a Federated Learning infrastructure to securely propagate threat signatures.
+                  Engineered a robust autonomous mobile robot navigation layer using LiDAR SLAM mapping and Nav2. Configured sensor fusion, occupancy grids, and custom C++ route optimization planners to dynamically route around obstacles, replacing legacy guide-tape systems.
                 </p>
 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <MetricBadge value="80% Attack Detection" />
-                  <MetricBadge value="<15ms Latency Overhead" />
-                  <MetricBadge value="Zero-Day Adaptation" />
+                  <MetricBadge value="+35% Throughput" />
+                  <MetricBadge value="-80% Downtime" />
+                  <MetricBadge value="2x Deployment Speed" />
                 </div>
               </div>
 
               {/* Visual Widget */}
               <div className="sm:col-span-5 w-full flex items-center justify-center pt-2 sm:pt-0">
-                <ByteGuardConsole />
+                <AutonomousLidarSim />
               </div>
             </div>
 
             {/* Footer */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-zinc-900 mt-6 w-full">
               <div className="flex flex-wrap gap-1.5">
-                <TechBadge name="Mamba SSM" />
-                <TechBadge name="Federated Learning" />
-                <TechBadge name="Python" />
-                <TechBadge name="SQL" />
-                <TechBadge name="AWS" />
+                <TechBadge name="ROS2" />
+                <TechBadge name="SLAM" />
+                <TechBadge name="Nav2" />
+                <TechBadge name="C++" />
+                <TechBadge name="Gazebo" />
               </div>
 
               <a
-                href="https://github.com/Harishankar00/byteguard"
+                href="https://github.com/Harishankar00/ros_bot_1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-800 hover:border-zinc-500 rounded text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer bg-zinc-950/40 w-fit"
               >
                 <Github className="w-3.5 h-3.5" />
-                <span>Code Repository</span>
+                <span>ros_bot_1 Repository</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </a>
             </div>
           </BentoCard>
 
-          {/* Card 2: Autonomous Car (Robotics & Autonomous Systems) - Spans 1 Column */}
-          <BentoCard className="md:col-span-1 p-6 flex flex-col justify-between h-full min-h-[380px]" glowColor="rgba(0, 191, 255, 0.15)">
+          {/* Card 2: ByteGuard (AI Security & Distributed Systems) - Spans 1 Column */}
+          <BentoCard className="md:col-span-1 p-6 flex flex-col justify-between h-full min-h-[380px]" glowColor="rgba(79, 209, 255, 0.12)">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded bg-zinc-900/60 border border-zinc-800 text-[#00BFFF]">
-                  <Cpu className="w-5 h-5" />
+                <div className="p-2 rounded bg-zinc-900/60 border border-zinc-800 text-[#4FD1FF]">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
                   <span className="text-[10px] font-mono tracking-wide text-zinc-500 block uppercase">
-                    Robotics &amp; Autonomous Systems
+                    AI Security &amp; Distributed Systems
                   </span>
                   <h3 className="text-xl font-bold text-white group-hover:text-[#4FD1FF] transition-colors duration-300">
-                    Autonomous Navigation
+                    ByteGuard Threat Analysis
                   </h3>
                 </div>
               </div>
 
-              <p className="text-xs text-zinc-400 font-light leading-relaxed mb-6">
-                Designed an infrastructure-free navigation framework using LiDAR SLAM and Nav2. Integrated adaptive route optimization to replace legacy physical magnetic tape systems.
+              <p className="text-xs text-zinc-400 font-light leading-relaxed mb-4">
+                Architected a real-time distributed Mamba SSM + Federated Learning threat analysis pipeline to securely filter parameters and block SQL injections.
               </p>
 
-              <div className="w-full mb-6">
-                <TrajectorySim />
+              <div className="w-full mb-4">
+                <ByteGuardConsole />
               </div>
             </div>
 
             {/* Footer */}
             <div className="flex flex-col gap-4 pt-4 border-t border-zinc-900 w-full">
               <div className="flex flex-wrap gap-1.5">
-                <TechBadge name="ROS2" />
-                <TechBadge name="SLAM" />
-                <TechBadge name="Nav2" />
-                <TechBadge name="C++" />
+                <TechBadge name="Mamba SSM" />
+                <TechBadge name="Federated" />
+                <TechBadge name="Python" />
+                <TechBadge name="SQL" />
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-2">
-                <MetricBadge value="+35% Throughput" />
-                <MetricBadge value="-80% Downtime" />
+              <div className="flex flex-wrap gap-2">
+                <MetricBadge value="80% Detection" />
+                <MetricBadge value="<15ms Overhead" />
               </div>
 
               <a
-                href="https://github.com/Harishankar00/autonomous-car"
+                href="https://www.kaggle.com/code/harishankar00/byteguard-sim"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-800 hover:border-zinc-500 rounded text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer bg-zinc-950/40 w-full text-center"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-zinc-800 hover:border-zinc-500 rounded text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer bg-zinc-950/40 w-full text-center"
               >
                 <Github className="w-3.5 h-3.5" />
-                <span>Code Repository</span>
+                <span>Kaggle Notebook</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </a>
             </div>
@@ -499,7 +575,7 @@ export const Projects: React.FC = () => {
               </div>
 
               <a
-                href="https://github.com/Harishankar00/farm-app"
+                href="https://github.com/Harishankar00/Farmer_app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-800 hover:border-zinc-500 rounded text-xs font-mono text-zinc-300 hover:text-white transition-all cursor-pointer bg-zinc-950/40 w-fit"
